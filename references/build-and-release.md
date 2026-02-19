@@ -2,29 +2,31 @@
 
 ## Build Pipeline
 
-```
+```text
 main.user.ts + src/*.ts
   │
-  ▼  Rollup (TypeScript → IIFE bundle)
+  ▼  Rollup (TypeScript -> IIFE bundle)
 .out/main.user.js
   │
   ▼  Concatenation (header.js + compiled output)
-releases/release-<version>.user.js
+releases/main.user.js
 ```
 
-The two-step process keeps the Tampermonkey header separate from the TypeScript source. The header is plain JavaScript with metadata comments that Tampermonkey parses — it must appear at the very top of the final file, before any compiled code.
+The userscript header must remain at the top of the final file, before compiled code.
 
-### npm Scripts
+## npm Scripts
 
 | Script | Command | Purpose |
 |---|---|---|
-| `compile` | `rollup -c` | TypeScript → `.out/main.user.js` |
+| `compile` | `rollup -c` | TypeScript -> `.out/main.user.js` |
 | `watch` | `rollup -c --watch` | Rebuild on file changes |
-| `concat` | `concat -o releases/... header.js .out/main.user.js` | Prepend header to compiled output |
+| `concat` | `concat -o releases/main.user.js header.js .out/main.user.js` | Prepend header to compiled output |
 | `build` | `compile` + `concat` | Full build |
-| `release` | Version bump in header + `build` | Tagged release build |
+| `release` | Sync `@version` in `header.js` with package version + build | Release build |
 
-## Tampermonkey Header Format
+## Header Template (Distribution Strategy)
+
+Use a stable URL strategy pointing to `releases/main.user.js`:
 
 ```javascript
 // ==UserScript==
@@ -32,8 +34,8 @@ The two-step process keeps the Tampermonkey header separate from the TypeScript 
 // @namespace   wme-sdk-scripts
 // @version     1.0.0
 // @description Brief description of the script.
-// @updateURL   https://raw.githubusercontent.com/<user>/<repo>/releases/releases/main.user.js
-// @downloadURL https://raw.githubusercontent.com/<user>/<repo>/releases/releases/main.user.js
+// @updateURL   https://raw.githubusercontent.com/<user>/<repo>/<branch>/releases/main.user.js
+// @downloadURL https://raw.githubusercontent.com/<user>/<repo>/<branch>/releases/main.user.js
 // @author      Author Name
 // @match       https://www.waze.com/editor*
 // @match       https://beta.waze.com/editor*
@@ -41,80 +43,60 @@ The two-step process keeps the Tampermonkey header separate from the TypeScript 
 // @match       https://beta.waze.com/*/editor*
 // @exclude     https://www.waze.com/user/editor*
 // @exclude     https://beta.waze.com/user/editor*
-// @grant       GM_xmlhttpRequest
 // @grant       unsafeWindow
+// @grant       GM_xmlhttpRequest
 // @connect     api.example.com
 // ==/UserScript==
 ```
 
-### Required @match Patterns
+## Required `@match` / `@exclude`
 
-These four patterns cover all WME editor URLs (production + beta, with and without locale prefix):
+`@match`:
 
-```
+```text
 https://www.waze.com/editor*
 https://beta.waze.com/editor*
 https://www.waze.com/*/editor*
 https://beta.waze.com/*/editor*
 ```
 
-### Required @exclude Patterns
+`@exclude`:
 
-Exclude the user profile pages that also match `/editor`:
-
-```
+```text
 https://www.waze.com/user/editor*
 https://beta.waze.com/user/editor*
 ```
 
-### Common @grant Values
+## Grants and External APIs
 
-| Grant | When needed |
-|---|---|
-| `unsafeWindow` | Always — required for `SDK_INITIALIZED` and `getWmeSdk` access |
-| `GM_xmlhttpRequest` | When fetching external APIs (bypasses CORS) |
-
-### @connect
-
-List each external domain the script will fetch data from:
-
-```
-// @connect api.example.com
-// @connect data.othersource.org
-```
+- `unsafeWindow`: required for SDK access (`SDK_INITIALIZED`, `getWmeSdk`).
+- `GM_xmlhttpRequest`: needed only for external HTTP requests.
+- `@connect`: list every remote domain used by `GM_xmlhttpRequest`.
 
 ## Release Workflow
 
-1. **Bump version** in `package.json`:
-   ```bash
-   npm version patch  # or minor, major
-   ```
+1. Bump package version:
 
-2. **Run release** (updates header.js version + builds):
-   ```bash
-   npm run release
-   ```
-   This replaces the version number in `header.js` with the package.json version, then runs the full build.
-
-3. **Output:** `releases/release-<version>.user.js`
-
-4. **Commit and push** the release file.
-
-## Distribution
-
-Host the release file on GitHub. Use raw URLs for auto-update:
-
-```
-@updateURL   https://raw.githubusercontent.com/<user>/<repo>/<branch>/releases/main.user.js
-@downloadURL https://raw.githubusercontent.com/<user>/<repo>/<branch>/releases/main.user.js
+```bash
+npm version patch  # or minor / major
 ```
 
-Some projects maintain a dedicated `releases` branch with only the built files, keeping the main branch clean.
+2. Run release build:
+
+```bash
+npm run release
+```
+
+3. Output artifact:
+
+```text
+releases/main.user.js
+```
+
+4. Commit and push updated files (including `header.js` version update and built artifact).
 
 ## Development Workflow
 
-1. Run `npm run watch` for continuous recompilation.
-2. In Tampermonkey, create a dev header pointing to the local `.out/main.user.js` file via `@require file:///path/to/.out/main.user.js`.
-3. Reload the WME editor page to pick up changes.
-
-Alternatively, use `concat` after each compile and reload the full userscript in Tampermonkey.
+1. Run `npm run watch` for continuous compilation.
+2. Reload WME after rebuilds.
+3. If needed, use a dev-only header with `@require file:///.../.out/main.user.js`.

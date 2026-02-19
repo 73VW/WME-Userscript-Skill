@@ -10,7 +10,7 @@ Guide for bootstrapping a new Waze Map Editor userscript project in TypeScript.
 
 ## Minimal Project Structure
 
-```
+```text
 my-wme-script/
 ├── main.user.ts           # Entry point — SDK init + script logic
 ├── header.js              # Tampermonkey userscript header
@@ -18,27 +18,24 @@ my-wme-script/
 ├── tsconfig.json          # TypeScript compiler options
 ├── package.json           # Dependencies and scripts
 ├── .out/                  # Build output (gitignored)
-└── releases/              # Final userscript files
+└── releases/              # Final userscript artifact(s)
 ```
 
 For larger scripts, add:
 
-```
-├── src/                   # Source modules
-│   ├── layer.ts           # Layer base classes
-│   ├── storage.ts         # localStorage persistence
-│   ├── utils.ts           # Shared utilities
-│   └── __tests__/         # Unit tests
-├── locales/               # i18next translations (optional)
-│   ├── i18n.ts
-│   ├── en/common.json
-│   └── fr/common.json
-└── .devcontainer/         # DevContainer config (optional)
+```text
+├── src/
+│   ├── layer.ts
+│   ├── storage.ts
+│   ├── utils.ts
+│   └── __tests__/
+├── locales/               # Optional i18next resources
+└── .devcontainer/         # Optional
 ```
 
 ## package.json
 
-Minimal dependencies:
+Minimal setup with a stable distribution artifact (`releases/main.user.js`):
 
 ```json
 {
@@ -47,7 +44,7 @@ Minimal dependencies:
   "scripts": {
     "compile": "rollup -c",
     "watch": "rollup -c --watch",
-    "concat": "concat -o releases/release-$npm_package_version.user.js header.js .out/main.user.js",
+    "concat": "concat -o releases/main.user.js header.js .out/main.user.js",
     "build": "npm run compile && npm run concat",
     "release": "replace-in-files --regex='\\d+\\.\\d+\\.\\d+' --replacement=$npm_package_version header.js && npm run build"
   },
@@ -66,11 +63,11 @@ Minimal dependencies:
 }
 ```
 
-On Windows, replace `$npm_package_version` with `%npm_package_version%` or use `cross-env`.
+On Windows, replace `$npm_package_version` with `%npm_package_version%` or use `cross-var`/`cross-env` wrappers.
 
 ## tsconfig.json
 
-Key settings for WME userscripts:
+Recommended baseline:
 
 ```json
 {
@@ -89,7 +86,7 @@ Key settings for WME userscripts:
 }
 ```
 
-Enable `resolveJsonModule: true` if importing JSON files (e.g., i18next locale files).
+Enable `resolveJsonModule: true` if importing JSON locale files.
 
 ## rollup.config.mjs
 
@@ -110,7 +107,7 @@ export default {
 };
 ```
 
-For projects with JSON imports or npm dependencies, add plugins:
+If you import JSON or external npm modules, add:
 
 ```javascript
 import typescript from "@rollup/plugin-typescript";
@@ -130,136 +127,25 @@ export default {
 };
 ```
 
-## Optional Features
-
-### i18next (Localization)
-
-Add to package.json:
-
-```json
-{
-  "dependencies": {
-    "i18next": "^25.3.0"
-  },
-  "devDependencies": {
-    "i18next-parser": "^9.3.0"
-  }
-}
-```
-
-Create `locales/i18n.ts`:
-
-```typescript
-import i18next from "i18next";
-import enCommon from "./en/common.json";
-import frCommon from "./fr/common.json";
-
-i18next.init({
-  lng: "en",
-  fallbackLng: "en",
-  resources: {
-    en: { common: enCommon },
-    fr: { common: frCommon },
-  },
-});
-
-export default i18next;
-```
-
-Add a script for key extraction:
-
-```json
-"makemessages": "i18next 'src/**/*.ts' 'main.user.ts'"
-```
-
-### Vitest (Testing)
-
-```json
-{
-  "devDependencies": {
-    "vitest": "^3.0.0"
-  },
-  "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest"
-  }
-}
-```
-
-Create `vitest.config.ts`:
-
-```typescript
-import { defineConfig } from "vitest/config";
-
-export default defineConfig({
-  test: {
-    include: ["src/**/*.test.ts"],
-  },
-});
-```
-
-### ESLint + Prettier
-
-```json
-{
-  "devDependencies": {
-    "eslint": "^9.0.0",
-    "typescript-eslint": "^8.0.0",
-    "prettier": "^3.6.0"
-  },
-  "scripts": {
-    "lint": "eslint .",
-    "format": "prettier --write ."
-  }
-}
-```
-
-### Watch Mode (Development)
-
-For concurrent watchers during development, use `concurrently`:
-
-```json
-{
-  "devDependencies": {
-    "concurrently": "^9.0.0"
-  },
-  "scripts": {
-    "watch": "concurrently \"rollup -c --watch\" \"npm run lint -- --watch\" \"prettier --watch .\""
-  }
-}
-```
-
-## DevContainer Setup
-
-For reproducible environments, add `.devcontainer/devcontainer.json`:
-
-```json
-{
-  "name": "WME Script Dev",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
-  "postCreateCommand": "npm install"
-}
-```
-
 ## Quickstart
 
 ```bash
 # 1. Create project directory
 mkdir my-wme-script && cd my-wme-script
 
-# 2. Initialize and install dependencies
+# 2. Initialize project
 npm init -y
+
+# 3. Add files from this skill templates/examples
+# - examples/sdk-init.ts -> main.user.ts
+# - examples/header-template.js -> header.js
+
+# 4. Install dependencies
 npm install
-
-# 3. Create entry point from template
-# (copy from examples/sdk-init.ts)
-
-# 4. Create Tampermonkey header
-# (copy from examples/header-template.js, fill in TODOs)
 
 # 5. Build
 npm run build
 
 # 6. Install in Tampermonkey
-# Open releases/release-1.0.0.user.js in browser
+# Open releases/main.user.js in browser
 ```

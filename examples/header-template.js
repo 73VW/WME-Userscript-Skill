@@ -3,8 +3,8 @@
 // @namespace   wme-sdk-scripts
 // @version     1.0.0
 // @description TODO: Brief description of what the script does.
-// @updateURL   TODO: https://raw.githubusercontent.com/<user>/<repo>/releases/releases/main.user.js
-// @downloadURL TODO: https://raw.githubusercontent.com/<user>/<repo>/releases/releases/main.user.js
+// @updateURL   TODO: https://raw.githubusercontent.com/<user>/<repo>/<branch>/releases/main.user.js
+// @downloadURL TODO: https://raw.githubusercontent.com/<user>/<repo>/<branch>/releases/main.user.js
 // @author      TODO: Author Name
 // @match       https://www.waze.com/editor*
 // @match       https://beta.waze.com/editor*
